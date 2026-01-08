@@ -1,0 +1,11 @@
+"$schema" = "../gen/schemas/schema.json"
+
+[[permission]]
+identifier = "allow-get-config"
+description = "Allows the get_config command"
+commands.allow = ["get_config"]
+
+[[permission]]
+identifier = "allow-exit-with-code"
+description = "Allows the exit_with_code command"
+commands.allow = ["exit_with_code"]

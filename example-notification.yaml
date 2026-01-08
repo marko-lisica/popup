@@ -1,0 +1,27 @@
+content:
+  type: notification
+  title: Update your OS!
+  description: Please update your OS to the latest version.
+  icon: https://i.imgur.com/ijjS0pQ.png
+  button_primary_text: Update Now
+  button_primary_webhook:
+    url: https://webhook.site/unique-id
+    payload: |
+      {
+        "action": "update_accepted",
+        "timestamp": "2024-01-01T00:00:00Z"
+      }
+  button_secondary_text: Remind me later
+  button_secondary_webhook:
+    url: https://webhook.site/unique-id
+    payload: |
+      {
+        "action": "update_deferred",
+        "timestamp": "2024-01-01T00:00:00Z"
+      }
+
+window:
+  width: 1000
+  height: 600
+  alwaysOnTop: true
+  closable: false

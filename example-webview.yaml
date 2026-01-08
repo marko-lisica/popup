@@ -1,0 +1,14 @@
+content:
+  type: webview
+  url: https://example.com
+  window_title: Example Website
+
+window:
+  width: 1200
+  height: 800
+  resizable: true
+  alwaysOnTop: false
+  closable: true
+  minimizable: true
+  hiddenTitle: false
+  titleBarStyle: visible

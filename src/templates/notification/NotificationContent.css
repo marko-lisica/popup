@@ -1,0 +1,89 @@
+/* Notification Card */
+.notification-card {
+    width: 100%;
+    max-width: 460px;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Content Area */
+.notification-content {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.notification-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.notification-text {
+    flex: 1;
+}
+
+.notification-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+}
+
+.notification-description {
+    font-size: 14px;
+    color: #666666;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Buttons */
+.notification-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.notification-button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.notification-button-secondary {
+    background: #f5f5f5;
+    color: #1a1a1a;
+}
+
+.notification-button-secondary:hover {
+    background: #e8e8e8;
+}
+
+.notification-button-secondary:active {
+    background: #d8d8d8;
+}
+
+.notification-button-primary {
+    background: #007aff;
+    color: #ffffff;
+}
+
+.notification-button-primary:hover {
+    background: #0051d5;
+}
+
+.notification-button-primary:active {
+    background: #004ac1;
+}

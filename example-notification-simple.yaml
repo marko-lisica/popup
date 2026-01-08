@@ -1,0 +1,7 @@
+content:
+  type: notification
+  title: Simple Notification
+  description: This is a simple notification with default buttons.
+
+window:
+  alwaysOnTop: true
