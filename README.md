@@ -1,14 +1,14 @@
 # Popup - Desktop Notification Tool
 
-A simple Tauri-based desktop application that displays a configurable popup window that stays always on top.
+A simple Tauri-based desktop application that displays configurable popup windows.
 
 ## Features
 
-- Always-on-top window
-- Configurable via YAML file
+- **Notification Template**: Predefined notification dialogs with buttons and webhooks
+- **Custom Mode**: Display any web content with full window customization
+- **YAML Configuration**: Load settings from configuration files
 - Global keyboard shortcut (CMD+SHIFT+X or CTRL+SHIFT+X) to close
-- Simple HTML/CSS/JS frontend (no frameworks)
-- CLI-based
+- CLI-based with intuitive subcommands
 
 ## Prerequisites
 
@@ -35,53 +35,97 @@ Before running this application, you need to install:
 
 ## Usage
 
-Run the application with a config file:
+The application supports three modes via subcommands:
+
+### 1. Notification Mode (Template)
+
+Display a notification dialog with predefined window settings:
 
 ```bash
-npm run tauri -- dev -- config path/to/config.yaml
+popup notification \
+  --title "Update Available" \
+  --description "A new version is ready to install" \
+  --button_primary_text "Install" \
+  --button_primary_webhook_url "https://webhook.site/..." \
+  --button_primary_webhook_payload '{"action":"install"}'
 ```
 
-For example, with the provided example config:
+### 2. Custom Mode
+
+Display custom web content with full window control:
 
 ```bash
-npm run tauri -- dev -- config example-config.yaml
+popup custom \
+  --url "https://example.com" \
+  --title "My App" \
+  --width 800 \
+  --height 600 \
+  --resizable true \
+  --closable true
 ```
 
-Or build for production:
+### 3. File Mode
+
+Load configuration from a YAML file:
 
 ```bash
-npm run tauri -- build
+popup file --path example-notification.yaml
 ```
 
-Then run the built executable:
+Or with short flag:
 
 ```bash
-./src-tauri/target/release/popup config path/to/config.yaml
+popup file -p example-custom.yaml
 ```
 
 ## Config File Format
 
-Create a YAML file with the following structure:
+### Notification Template
+
+Create a YAML file with a `notification` section:
 
 ```yaml
-title: "Your Title Here"
-description: "Your description text here"
+notification:
+  title: "Update Available"
+  description: "A new version is ready to install."
+  icon: "path/to/icon.png"
+  button_primary_text: "Install"
+  button_primary_webhook:
+    url: "https://webhook.site/your-webhook-id"
+    payload: '{"action":"install","version":"2.0.0"}'
+  button_secondary_text: "Later"
+  button_secondary_webhook:
+    url: "https://webhook.site/your-webhook-id"
+    payload: '{"action":"dismiss"}'
 ```
 
-### Example
+Note: Window settings are predefined for notification templates (500x300, non-resizable).
 
-An example config file is provided: `example-config.yaml`
+### Custom Mode
+
+Create a YAML file with a `custom` section:
 
 ```yaml
-title: "Welcome to Popup!"
-description: "This is a simple desktop notification app that stays always on top. Press CMD+SHIFT+X to close this window."
+custom:
+  url: "https://example.com"
+  title: "My Custom App"
+  window:
+    width: 800
+    height: 600
+    resizable: true
+    always_on_top: false
+    skip_taskbar: false
+    focus: true
+    visible_on_all_workspaces: false
+    closable: true
+    minimizable: true
+    hidden_title: false
+    title_bar_style: "visible"
 ```
 
-Run it with:
-
-```bash
-npm run tauri -- dev -- config example-config.yaml
-```
+Example files are provided:
+- `example-notification.yaml` - Notification template example
+- `example-custom.yaml` - Custom mode example
 
 ## Keyboard Shortcuts
 
@@ -91,33 +135,41 @@ npm run tauri -- dev -- config example-config.yaml
 
 ```
 popup/
-├── index.html           # Frontend HTML page
-├── example-config.yaml  # Example configuration file
-├── src-tauri/          # Rust backend
+├── index.html                    # Frontend HTML page
+├── example-notification.yaml     # Example notification config
+├── example-custom.yaml          # Example custom config
+├── src-tauri/                   # Rust backend
 │   ├── src/
-│   │   ├── main.rs     # CLI argument handling
-│   │   └── lib.rs      # Core logic, config loading
-│   ├── Cargo.toml      # Rust dependencies
-│   └── tauri.conf.json # Tauri configuration
-└── README.md           # This file
+│   │   ├── main.rs              # CLI subcommands and argument handling
+│   │   └── lib.rs               # Core logic, config structures, YAML loading
+│   ├── Cargo.toml               # Rust dependencies
+│   └── tauri.conf.json          # Tauri configuration
+└── README.md                    # This file
 ```
 
 ## How It Works
 
-1. User runs `popup config path/to/config.yaml`
-2. The Rust backend parses the CLI arguments using `clap`
-3. The YAML config is loaded using `serde_yaml`
-4. A Tauri window opens with `alwaysOnTop: true`
-5. The frontend invokes the `get_config` command to retrieve config
-6. The HTML page displays the title and description
+1. User runs a subcommand: `popup notification ...`, `popup custom ...`, or `popup file -p config.yaml`
+2. The Rust backend parses CLI arguments using `clap` with subcommands
+3. Config is built from CLI flags or loaded from YAML file
+4. A Tauri window is created with specified settings
+5. For notifications, the React frontend loads and displays the notification UI
+6. For custom mode, the specified URL is loaded directly
 7. Global shortcut CMD+SHIFT+X is registered to close the app
 
 ## Development
 
-To run in development mode:
+To run in development mode, use one of the subcommands:
 
 ```bash
-npm run tauri -- dev -- config example-config.yaml
+# Notification mode
+npm run tauri dev -- notification --title "Test" --description "Testing"
+
+# Custom mode
+npm run tauri dev -- custom --url "https://example.com"
+
+# File mode
+npm run tauri dev -- file -p example-notification.yaml
 ```
 
 ## Building
@@ -128,4 +180,17 @@ To create a production build:
 npm run tauri build
 ```
 
-The executable will be in `src-tauri/target/release/`
+The executables will be in `src-tauri/target/release/`
+
+Run the built executable:
+
+```bash
+# Notification
+./src-tauri/target/release/popup notification --title "Update" --description "New version available"
+
+# Custom
+./src-tauri/target/release/popup custom --url "https://example.com" --width 800 --height 600
+
+# File
+./src-tauri/target/release/popup file -p config.yaml
+```

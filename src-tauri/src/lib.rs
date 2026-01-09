@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::sync::Mutex;
 
+// Window configuration for custom mode
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct WindowConfig {
     #[serde(default = "default_width")]
@@ -80,82 +81,36 @@ impl Default for WindowConfig {
     }
 }
 
+// Hardcoded window configuration for notification template
 impl WindowConfig {
-    /// Merge CLI overrides into this config. CLI values take precedence.
-    pub fn merge_with_cli_overrides(
-        mut self,
-        width: Option<f64>,
-        height: Option<f64>,
-        resizable: Option<bool>,
-        always_on_top: Option<bool>,
-        skip_taskbar: Option<bool>,
-        focus: Option<bool>,
-        visible_on_all_workspaces: Option<bool>,
-        closable: Option<bool>,
-        minimizable: Option<bool>,
-        hidden_title: Option<bool>,
-        title_bar_style: Option<String>,
-    ) -> Self {
-        if let Some(v) = width {
-            self.width = v;
+    pub fn notification_template() -> Self {
+        Self {
+            width: 500.0,
+            height: 300.0,
+            resizable: false,
+            always_on_top: true,
+            skip_taskbar: true,
+            focus: true,
+            visible_on_all_workspaces: true,
+            closable: false,
+            minimizable: false,
+            hidden_title: true,
+            title_bar_style: "overlay".to_string(),
         }
-        if let Some(v) = height {
-            self.height = v;
-        }
-        if let Some(v) = resizable {
-            self.resizable = v;
-        }
-        if let Some(v) = always_on_top {
-            self.always_on_top = v;
-        }
-        if let Some(v) = skip_taskbar {
-            self.skip_taskbar = v;
-        }
-        if let Some(v) = focus {
-            self.focus = v;
-        }
-        if let Some(v) = visible_on_all_workspaces {
-            self.visible_on_all_workspaces = v;
-        }
-        if let Some(v) = closable {
-            self.closable = v;
-        }
-        if let Some(v) = minimizable {
-            self.minimizable = v;
-        }
-        if let Some(v) = hidden_title {
-            self.hidden_title = v;
-        }
-        if let Some(v) = title_bar_style {
-            self.title_bar_style = v;
-        }
-        self
     }
 }
 
+// New YAML config structure - top-level keys for each subcommand
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct Config {
-    pub content: Content,
+pub struct AppConfig {
     #[serde(default)]
-    pub window: Option<WindowConfig>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(tag = "type", rename_all = "lowercase")]
-pub enum Content {
-    Webview(WebviewContent),
-    Notification(NotificationContent),
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct WebviewContent {
-    pub url: String,
+    pub notification: Option<NotificationConfig>,
     #[serde(default)]
-    pub window_title: Option<String>,
+    pub custom: Option<CustomConfig>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct NotificationContent {
+pub struct NotificationConfig {
     pub title: String,
     pub description: String,
     #[serde(default)]
@@ -171,9 +126,81 @@ pub struct NotificationContent {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct CustomConfig {
+    pub url: String,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub window: Option<WindowConfig>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct WebhookConfig {
     pub url: String,
     pub payload: String,
+}
+
+// Internal config representation (used after CLI/YAML parsing)
+#[derive(Debug, Clone, Serialize)]
+pub struct Config {
+    pub content: Content,
+    pub window: WindowConfig,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum Content {
+    Custom(CustomContent),
+    Notification(NotificationContent),
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CustomContent {
+    pub url: String,
+    pub window_title: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct NotificationContent {
+    pub title: String,
+    pub description: String,
+    pub icon: Option<String>,
+    pub button_primary_text: Option<String>,
+    pub button_primary_webhook: Option<WebhookConfig>,
+    pub button_secondary_text: Option<String>,
+    pub button_secondary_webhook: Option<WebhookConfig>,
+}
+
+// Convert from AppConfig (YAML) to internal Config
+impl AppConfig {
+    pub fn to_config(self) -> Result<Config, String> {
+        if let Some(notification) = self.notification {
+            return Ok(Config {
+                content: Content::Notification(NotificationContent {
+                    title: notification.title,
+                    description: notification.description,
+                    icon: notification.icon,
+                    button_primary_text: notification.button_primary_text,
+                    button_primary_webhook: notification.button_primary_webhook,
+                    button_secondary_text: notification.button_secondary_text,
+                    button_secondary_webhook: notification.button_secondary_webhook,
+                }),
+                window: WindowConfig::notification_template(),
+            });
+        }
+
+        if let Some(custom) = self.custom {
+            return Ok(Config {
+                content: Content::Custom(CustomContent {
+                    url: custom.url,
+                    window_title: custom.title,
+                }),
+                window: custom.window.unwrap_or_default(),
+            });
+        }
+
+        Err("Config must contain either 'notification' or 'custom' section".to_string())
+    }
 }
 
 pub struct AppState {
@@ -197,8 +224,8 @@ pub fn load_config(path: &str) -> Result<Config, String> {
     let content = fs::read_to_string(&expanded_path)
         .map_err(|e| format!("Failed to read config file '{}': {}", expanded_path, e))?;
 
-    let config: Config = serde_yaml::from_str(&content)
+    let app_config: AppConfig = serde_yaml::from_str(&content)
         .map_err(|e| format!("Failed to parse YAML config: {}", e))?;
 
-    Ok(config)
+    app_config.to_config()
 }

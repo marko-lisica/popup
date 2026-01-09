@@ -1,120 +1,127 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use std::sync::Mutex;
 use tauri::State;
 
 #[derive(Parser, Debug)]
 #[command(name = "popup")]
 #[command(about = "A simple popup window tool", long_about = None)]
-struct Args {
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+
     /// Ignore Tauri dev flags
     #[arg(long, hide = true, global = true)]
     no_default_features: bool,
 
     #[arg(long, hide = true, global = true)]
     color: Option<String>,
+}
 
-    /// Path to the YAML config file. You can define windows settings and layout in the config file.
-    #[arg(long)]
-    config: Option<String>,
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Display a notification dialog (predefined template with fixed window settings)
+    Notification {
+        /// Notification title
+        #[arg(long)]
+        title: String,
 
-    /// Content type: 'webview' or 'notification'
-    #[arg(long, value_name = "TYPE")]
-    r#type: Option<String>,
+        /// Notification description
+        #[arg(long)]
+        description: String,
 
-    /// URL to load for webview type
-    #[arg(long)]
-    url: Option<String>,
+        /// Icon URL or file path
+        #[arg(long)]
+        icon: Option<String>,
 
-    /// Title (for notification or webview window title)
-    #[arg(long)]
-    title: Option<String>,
+        /// Primary button text (default: "Ok")
+        #[arg(long)]
+        button_primary_text: Option<String>,
 
-    /// Description (for notification type)
-    #[arg(long)]
-    description: Option<String>,
+        /// Primary button webhook URL
+        #[arg(long)]
+        button_primary_webhook_url: Option<String>,
 
-    /// Icon URL or file path (for notification type)
-    #[arg(long)]
-    icon: Option<String>,
+        /// Primary button webhook payload (JSON string)
+        #[arg(long)]
+        button_primary_webhook_payload: Option<String>,
 
-    /// Primary button text (default: "Ok")
-    #[arg(long)]
-    button_primary_text: Option<String>,
+        /// Secondary button text (default: "Cancel")
+        #[arg(long)]
+        button_secondary_text: Option<String>,
 
-    /// Primary button webhook URL
-    #[arg(long)]
-    button_primary_webhook_url: Option<String>,
+        /// Secondary button webhook URL
+        #[arg(long)]
+        button_secondary_webhook_url: Option<String>,
 
-    /// Primary button webhook payload (JSON string)
-    #[arg(long)]
-    button_primary_webhook_payload: Option<String>,
+        /// Secondary button webhook payload (JSON string)
+        #[arg(long)]
+        button_secondary_webhook_payload: Option<String>,
+    },
 
-    /// Secondary button text (default: "Cancel")
-    #[arg(long)]
-    button_secondary_text: Option<String>,
+    /// Display custom web content with full window control
+    Custom {
+        /// URL to load (http://, https://, or file://)
+        #[arg(long)]
+        url: String,
 
-    /// Secondary button webhook URL
-    #[arg(long)]
-    button_secondary_webhook_url: Option<String>,
+        /// Window title
+        #[arg(long)]
+        title: Option<String>,
 
-    /// Secondary button webhook payload (JSON string)
-    #[arg(long)]
-    button_secondary_webhook_payload: Option<String>,
+        /// Window width in pixels
+        #[arg(long)]
+        width: Option<f64>,
 
-    /// DEPRECATED: Use --type webview --url instead
-    #[arg(long)]
-    webview: Option<String>,
+        /// Window height in pixels
+        #[arg(long)]
+        height: Option<f64>,
 
-    /// Window width in pixels.
-    #[arg(long)]
-    width: Option<f64>,
+        /// Controls whether the window can be resized
+        #[arg(long)]
+        resizable: Option<bool>,
 
-    /// Window height in pixels.
-    #[arg(long)]
-    height: Option<f64>,
+        /// Keep window always on top of other windows
+        #[arg(long)]
+        always_on_top: Option<bool>,
 
-    /// Controls whether the window can be resized.
-    #[arg(long)]
-    resizable: Option<bool>,
+        /// Hide from taskbar/dock
+        #[arg(long)]
+        skip_taskbar: Option<bool>,
 
-    /// Keep window always on top of other windows.
-    #[arg(long)]
-    always_on_top: Option<bool>,
+        /// Automatically focus window when opened
+        #[arg(long)]
+        focus: Option<bool>,
 
-    /// Hide from taskbar/dock.
-    #[arg(long)]
-    skip_taskbar: Option<bool>,
+        /// Show on all virtual desktops (macOS only)
+        #[arg(long)]
+        visible_on_all_workspaces: Option<bool>,
 
-    /// Automatically focus window when opened.
-    #[arg(long)]
-    focus: Option<bool>,
+        /// Controls whether window shows the close button
+        #[arg(long)]
+        closable: Option<bool>,
 
-    /// Show on all virtual desktops (macOS only).
-    #[arg(long)]
-    visible_on_all_workspaces: Option<bool>,
+        /// Controls whether window shows the minimize button
+        #[arg(long)]
+        minimizable: Option<bool>,
 
-    /// Controls whether window shows the close button.
-    #[arg(long)]
-    closable: Option<bool>,
+        /// Hide the title bar
+        #[arg(long)]
+        hidden_title: Option<bool>,
 
-    /// Controls whether window shows the minimize button.
-    #[arg(long)]
-    minimizable: Option<bool>,
+        /// Title bar style: "overlay", "transparent", or "visible"
+        #[arg(long)]
+        title_bar_style: Option<String>,
+    },
 
-    /// Hide the title bar.
-    #[arg(long)]
-    hidden_title: Option<bool>,
-
-    /// Title bar style. Can be one of "overlay", "transparent", or "visible".
-    #[arg(long)]
-    title_bar_style: Option<String>,
-
-    /// List available content types
-    #[arg(long)]
-    templates: bool,
+    /// Load configuration from a YAML file
+    File {
+        /// Path to the YAML config file
+        #[arg(long, short = 'p')]
+        path: String,
+    },
 }
 
 #[tauri::command]
@@ -132,54 +139,134 @@ fn exit_with_code(code: i32) {
 }
 
 fn main() {
-    let args = Args::parse();
+    let cli = Cli::parse();
 
-    // Handle --templates flag
-    if args.templates {
-        println!("Available content types:");
-        println!();
-        println!("  webview       Load external webpage or local HTML file");
-        println!("                Example: popup --type webview --url https://example.com");
-        println!();
-        println!("  notification  Display a notification dialog with buttons");
-        println!("                Example: popup --type notification --title 'Update' --description 'Please update'");
-        println!();
-        println!("Window settings can be customized via --config YAML file or CLI flags.");
-        println!("Run 'popup --help' for all available options.");
-        std::process::exit(0);
-    }
+    // Build config based on subcommand
+    let config = match cli.command {
+        Commands::Notification {
+            title,
+            description,
+            icon,
+            button_primary_text,
+            button_primary_webhook_url,
+            button_primary_webhook_payload,
+            button_secondary_text,
+            button_secondary_webhook_url,
+            button_secondary_webhook_payload,
+        } => {
+            // Build webhooks if URLs are provided
+            let button_primary_webhook = match (
+                button_primary_webhook_url,
+                button_primary_webhook_payload,
+            ) {
+                (Some(url), Some(payload)) => Some(popup_lib::WebhookConfig { url, payload }),
+                (Some(_), None) => {
+                    eprintln!("Error: --button-primary-webhook-payload required when --button-primary-webhook-url is provided");
+                    std::process::exit(1);
+                }
+                _ => None,
+            };
 
-    // Validate webview URL if provided
-    if let Some(ref url) = args.webview {
-        if !url.starts_with("http://")
-            && !url.starts_with("https://")
-            && !url.starts_with("file://")
-        {
-            eprintln!("Error: --webview URL must start with http://, https://, or file://");
-            eprintln!("Examples:");
-            eprintln!("  --webview https://example.com");
-            eprintln!("  --webview http://localhost:8080");
-            eprintln!("  --webview file:///path/to/page.html");
-            std::process::exit(1);
+            let button_secondary_webhook = match (
+                button_secondary_webhook_url,
+                button_secondary_webhook_payload,
+            ) {
+                (Some(url), Some(payload)) => Some(popup_lib::WebhookConfig { url, payload }),
+                (Some(_), None) => {
+                    eprintln!("Error: --button-secondary-webhook-payload required when --button-secondary-webhook-url is provided");
+                    std::process::exit(1);
+                }
+                _ => None,
+            };
+
+            popup_lib::Config {
+                content: popup_lib::Content::Notification(popup_lib::NotificationContent {
+                    title,
+                    description,
+                    icon,
+                    button_primary_text,
+                    button_primary_webhook,
+                    button_secondary_text,
+                    button_secondary_webhook,
+                }),
+                window: popup_lib::WindowConfig::notification_template(),
+            }
         }
-    }
+        Commands::Custom {
+            url,
+            title,
+            width,
+            height,
+            resizable,
+            always_on_top,
+            skip_taskbar,
+            focus,
+            visible_on_all_workspaces,
+            closable,
+            minimizable,
+            hidden_title,
+            title_bar_style,
+        } => {
+            // Validate URL format
+            if !url.starts_with("http://")
+                && !url.starts_with("https://")
+                && !url.starts_with("file://")
+            {
+                eprintln!("Error: URL must start with http://, https://, or file://");
+                eprintln!("Examples:");
+                eprintln!("  --url https://example.com");
+                eprintln!("  --url http://localhost:8080");
+                eprintln!("  --url file:///path/to/page.html");
+                std::process::exit(1);
+            }
 
-    // Validate that at least config or type is provided
-    if args.config.is_none() && args.r#type.is_none() && args.webview.is_none() {
-        eprintln!("Error: Must provide --config, --type, or --webview");
-        eprintln!("Examples:");
-        eprintln!("  popup --config example-config.yaml");
-        eprintln!("  popup --type notification --title 'Update!' --description 'Please update'");
-        eprintln!("  popup --type webview --url https://example.com");
-        eprintln!("  popup --webview https://example.com  (deprecated)");
-        std::process::exit(1);
-    }
+            // Build window config from CLI flags or use defaults
+            let mut window = popup_lib::WindowConfig::default();
+            if let Some(v) = width {
+                window.width = v;
+            }
+            if let Some(v) = height {
+                window.height = v;
+            }
+            if let Some(v) = resizable {
+                window.resizable = v;
+            }
+            if let Some(v) = always_on_top {
+                window.always_on_top = v;
+            }
+            if let Some(v) = skip_taskbar {
+                window.skip_taskbar = v;
+            }
+            if let Some(v) = focus {
+                window.focus = v;
+            }
+            if let Some(v) = visible_on_all_workspaces {
+                window.visible_on_all_workspaces = v;
+            }
+            if let Some(v) = closable {
+                window.closable = v;
+            }
+            if let Some(v) = minimizable {
+                window.minimizable = v;
+            }
+            if let Some(v) = hidden_title {
+                window.hidden_title = v;
+            }
+            if let Some(v) = title_bar_style {
+                window.title_bar_style = v;
+            }
 
-    // Load config if provided, otherwise use defaults
-    let config = match args.config {
-        Some(path) => match popup_lib::load_config(&path) {
+            popup_lib::Config {
+                content: popup_lib::Content::Custom(popup_lib::CustomContent {
+                    url,
+                    window_title: title,
+                }),
+                window,
+            }
+        }
+        Commands::File { path } => match popup_lib::load_config(&path) {
             Ok(config) => {
-                println!("Loaded config successfully");
+                println!("Loaded config from: {}", path);
                 config
             }
             Err(e) => {
@@ -187,110 +274,6 @@ fn main() {
                 std::process::exit(1);
             }
         },
-        None => {
-            // No config file, build from CLI flags
-            println!("No config file provided, using CLI flags");
-
-            // Determine content type
-            let content_type = args.r#type.as_deref().or(if args.webview.is_some() {
-                Some("webview")
-            } else {
-                None
-            });
-
-            let content = match content_type {
-                Some("webview") => {
-                    let url = args
-                        .url
-                        .clone()
-                        .or(args.webview.clone())
-                        .ok_or_else(|| {
-                            eprintln!("Error: --url is required for webview type");
-                            std::process::exit(1);
-                        })
-                        .unwrap();
-
-                    popup_lib::Content::Webview(popup_lib::WebviewContent {
-                        url,
-                        window_title: args.title.clone(),
-                    })
-                }
-                Some("notification") => {
-                    let title = args
-                        .title
-                        .clone()
-                        .ok_or_else(|| {
-                            eprintln!("Error: --title is required for notification type");
-                            std::process::exit(1);
-                        })
-                        .unwrap();
-
-                    let description = args
-                        .description
-                        .clone()
-                        .ok_or_else(|| {
-                            eprintln!("Error: --description is required for notification type");
-                            std::process::exit(1);
-                        })
-                        .unwrap();
-
-                    // Build webhooks if URLs are provided
-                    let button_primary_webhook = match (
-                        args.button_primary_webhook_url.clone(),
-                        args.button_primary_webhook_payload.clone(),
-                    ) {
-                        (Some(url), Some(payload)) => {
-                            Some(popup_lib::WebhookConfig { url, payload })
-                        }
-                        (Some(_), None) => {
-                            eprintln!("Error: --button-primary-webhook-payload required when --button-primary-webhook-url is provided");
-                            std::process::exit(1);
-                        }
-                        _ => None,
-                    };
-
-                    let button_secondary_webhook = match (
-                        args.button_secondary_webhook_url.clone(),
-                        args.button_secondary_webhook_payload.clone(),
-                    ) {
-                        (Some(url), Some(payload)) => {
-                            Some(popup_lib::WebhookConfig { url, payload })
-                        }
-                        (Some(_), None) => {
-                            eprintln!("Error: --button-secondary-webhook-payload required when --button-secondary-webhook-url is provided");
-                            std::process::exit(1);
-                        }
-                        _ => None,
-                    };
-
-                    popup_lib::Content::Notification(popup_lib::NotificationContent {
-                        title,
-                        description,
-                        icon: args.icon.clone(),
-                        button_primary_text: args.button_primary_text.clone(),
-                        button_primary_webhook,
-                        button_secondary_text: args.button_secondary_text.clone(),
-                        button_secondary_webhook,
-                    })
-                }
-                Some(other) => {
-                    eprintln!(
-                        "Error: Unknown type '{}'. Must be 'webview' or 'notification'",
-                        other
-                    );
-                    std::process::exit(1);
-                }
-                None => {
-                    eprintln!("Error: --type is required when not using --config");
-                    std::process::exit(1);
-                }
-            };
-
-            popup_lib::Config {
-                content,
-                window: None,
-            }
-        }
     };
 
     // Build and run the application
@@ -318,48 +301,23 @@ fn main() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
-            // Get window config from YAML or use defaults, then merge with CLI overrides
-            let mut window_config = config_clone
-                .window
-                .as_ref()
-                .cloned()
-                .unwrap_or_default()
-                .merge_with_cli_overrides(
-                    args.width,
-                    args.height,
-                    args.resizable,
-                    args.always_on_top,
-                    args.skip_taskbar,
-                    args.focus,
-                    args.visible_on_all_workspaces,
-                    args.closable,
-                    args.minimizable,
-                    args.hidden_title,
-                    args.title_bar_style,
-                );
+            let window_config = &config_clone.window;
 
             // Determine webview URL and window title based on content type
             let (webview_url, window_title) = match &config_clone.content {
-                popup_lib::Content::Webview(webview) => {
+                popup_lib::Content::Custom(custom) => {
                     // Load external URL directly
-                    let url =
-                        tauri::WebviewUrl::External(webview.url.parse().unwrap_or_else(|e| {
-                            eprintln!("Error: Failed to parse webview URL: {}", e);
-                            std::process::exit(1);
-                        }));
-                    let title = webview
+                    let url = tauri::WebviewUrl::External(custom.url.parse().unwrap_or_else(|e| {
+                        eprintln!("Error: Failed to parse URL: {}", e);
+                        std::process::exit(1);
+                    }));
+                    let title = custom
                         .window_title
                         .clone()
                         .unwrap_or_else(|| "Popup".to_string());
                     (url, title)
                 }
                 popup_lib::Content::Notification(notification) => {
-                    // Apply notification template overrides (template wins)
-                    window_config.width = 500.0;
-                    window_config.height = 300.0;
-                    window_config.resizable = false;
-                    window_config.skip_taskbar = true;
-
                     // Load React app for notification UI
                     (tauri::WebviewUrl::default(), notification.title.clone())
                 }

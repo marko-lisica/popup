@@ -1,27 +1,12 @@
-content:
-  type: notification
-  title: Update your OS!
-  description: Please update your OS to the latest version.
-  icon: https://i.imgur.com/ijjS0pQ.png
-  button_primary_text: Update Now
+notification:
+  title: "Update Available"
+  description: "A new version is ready to install. Click Install to proceed."
+  icon: "path/to/icon.png"
+  button_primary_text: "Install"
   button_primary_webhook:
-    url: https://webhook.site/unique-id
-    payload: |
-      {
-        "action": "update_accepted",
-        "timestamp": "2024-01-01T00:00:00Z"
-      }
-  button_secondary_text: Remind me later
+    url: "https://webhook.site/your-webhook-id"
+    payload: '{"action":"install","version":"2.0.0"}'
+  button_secondary_text: "Later"
   button_secondary_webhook:
-    url: https://webhook.site/unique-id
-    payload: |
-      {
-        "action": "update_deferred",
-        "timestamp": "2024-01-01T00:00:00Z"
-      }
-
-window:
-  width: 1000
-  height: 600
-  alwaysOnTop: true
-  closable: false
+    url: "https://webhook.site/your-webhook-id"
+    payload: '{"action":"dismiss"}'
