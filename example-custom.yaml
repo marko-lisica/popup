@@ -1,0 +1,15 @@
+custom:
+  url: "https://example.com"
+  title: "My Custom App"
+  window:
+    width: 800
+    height: 600
+    resizable: true
+    always_on_top: false
+    skip_taskbar: false
+    focus: true
+    visible_on_all_workspaces: false
+    closable: true
+    minimizable: true
+    hidden_title: false
+    title_bar_style: "visible"
