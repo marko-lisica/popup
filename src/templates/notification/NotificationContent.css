@@ -1,20 +1,24 @@
 /* Notification Card */
 .notification-card {
     width: 100%;
-    max-width: 460px;
-    background: #ffffff;
-    border-radius: 12px;
-    padding: 24px;
+    background: var(--bg-primary);
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    min-height: 200px;
+}
+
+/* Body Area */
+.notification-body {
+    flex: 1;
+    padding: 24px;
 }
 
 /* Content Area */
 .notification-content {
     display: flex;
     gap: 16px;
-    align-items: flex-start;
+    align-items: center;
+    flex-direction: column;
 }
 
 .notification-icon {
@@ -24,66 +28,71 @@
     object-fit: cover;
     flex-shrink: 0;
 }
-
 .notification-text {
-    flex: 1;
+    text-align: center;
 }
 
 .notification-title {
     font-size: 18px;
     font-weight: 600;
-    color: #1a1a1a;
-    margin: 0 0 8px 0;
+    color: var(--text-primary);
     line-height: 1.4;
 }
 
 .notification-description {
     font-size: 14px;
-    color: #666666;
+    color: var(--text-secondary);
     margin: 0;
     line-height: 1.5;
+}
+
+/* Footer (sticky at bottom) */
+.notification-footer {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border-primary);
 }
 
 /* Buttons */
 .notification-buttons {
     display: flex;
-    gap: 12px;
-    justify-content: flex-end;
+    gap: 16px;
+    justify-content: space-between;
 }
 
 .notification-button {
-    padding: 10px 20px;
+    padding: 8px 8px;
     border-radius: 8px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     border: none;
     cursor: pointer;
     transition: all 0.2s ease;
     font-family: inherit;
+    width: 100%;
 }
 
 .notification-button-secondary {
-    background: #f5f5f5;
-    color: #1a1a1a;
+    background: var(--bg-button-secondary);
+    color: var(--text-primary);
 }
 
 .notification-button-secondary:hover {
-    background: #e8e8e8;
+    background: var(--bg-button-secondary-hover);
 }
 
 .notification-button-secondary:active {
-    background: #d8d8d8;
+    background: var(--bg-button-secondary-active);
 }
 
 .notification-button-primary {
-    background: #007aff;
+    background: var(--accent-primary);
     color: #ffffff;
 }
 
 .notification-button-primary:hover {
-    background: #0051d5;
+    background: var(--accent-primary-hover);
 }
 
 .notification-button-primary:active {
-    background: #004ac1;
+    background: var(--accent-primary-active);
 }

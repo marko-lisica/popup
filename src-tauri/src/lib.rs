@@ -85,7 +85,7 @@ impl Default for WindowConfig {
 impl WindowConfig {
     pub fn notification_template() -> Self {
         Self {
-            width: 500.0,
+            width: 400.0,
             height: 300.0,
             resizable: false,
             always_on_top: true,
