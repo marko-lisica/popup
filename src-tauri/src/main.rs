@@ -138,6 +138,21 @@ fn exit_with_code(code: i32) {
     std::process::exit(code);
 }
 
+#[tauri::command]
+async fn resize_window_to_content(
+    window: tauri::Window,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    use tauri::Size;
+
+    // Use provided width and height
+    // Use Size::Logical to set the inner content size (excludes window decorations)
+    window
+        .set_size(Size::Logical(tauri::LogicalSize::new(width, height)))
+        .map_err(|e| format!("Failed to resize window: {}", e))
+}
+
 fn main() {
     let cli = Cli::parse();
 
@@ -295,7 +310,11 @@ fn main() {
         .manage(popup_lib::AppState {
             config: Mutex::new(Some(config.clone())),
         })
-        .invoke_handler(tauri::generate_handler![get_config, exit_with_code])
+        .invoke_handler(tauri::generate_handler![
+            get_config,
+            exit_with_code,
+            resize_window_to_content
+        ])
         .setup(move |app| {
             // Set macOS activation policy to hide from dock (Accessory allows windows)
             #[cfg(target_os = "macos")]

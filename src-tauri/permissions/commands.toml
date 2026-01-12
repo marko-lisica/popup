@@ -9,3 +9,8 @@ commands.allow = ["get_config"]
 identifier = "allow-exit-with-code"
 description = "Allows the exit_with_code command"
 commands.allow = ["exit_with_code"]
+
+[[permission]]
+identifier = "allow-resize-window-to-content"
+description = "Allows the resize_window_to_content command"
+commands.allow = ["resize_window_to_content"]
