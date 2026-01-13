@@ -11,5 +11,6 @@ custom:
     visible_on_all_workspaces: false
     closable: true
     minimizable: true
-    hidden_title: false
-    title_bar_style: "visible"
+    hide_title_bar: false
+    visible: false
+    transparent: true

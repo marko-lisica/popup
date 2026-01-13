@@ -23,10 +23,12 @@ pub struct WindowConfig {
     pub closable: bool,
     #[serde(default = "default_minimizable")]
     pub minimizable: bool,
-    #[serde(default = "default_hidden_title")]
-    pub hidden_title: bool,
-    #[serde(default = "default_title_bar_style")]
-    pub title_bar_style: String,
+    #[serde(default = "default_hide_title_bar")]
+    pub hide_title_bar: bool,
+    #[serde(default = "default_visible")]
+    pub visible: bool,
+    #[serde(default = "default_transparent")]
+    pub transparent: bool,
 }
 
 fn default_width() -> f64 {
@@ -56,11 +58,14 @@ fn default_closable() -> bool {
 fn default_minimizable() -> bool {
     false
 }
-fn default_hidden_title() -> bool {
-    true
+fn default_hide_title_bar() -> bool {
+    false
 }
-fn default_title_bar_style() -> String {
-    "overlay".to_string()
+fn default_visible() -> bool {
+    false
+}
+fn default_transparent() -> bool {
+    true
 }
 
 impl Default for WindowConfig {
@@ -75,8 +80,9 @@ impl Default for WindowConfig {
             visible_on_all_workspaces: default_visible_on_all_workspaces(),
             closable: default_closable(),
             minimizable: default_minimizable(),
-            hidden_title: default_hidden_title(),
-            title_bar_style: default_title_bar_style(),
+            hide_title_bar: default_hide_title_bar(),
+            visible: default_visible(),
+            transparent: default_transparent(),
         }
     }
 }
@@ -84,6 +90,13 @@ impl Default for WindowConfig {
 // Hardcoded window configuration for notification template
 impl WindowConfig {
     pub fn notification_template() -> Self {
+        // On Windows: start hidden to avoid blank screen flash
+        // On macOS/others: start visible (no blank screen issue)
+        #[cfg(target_os = "windows")]
+        let visible = false;
+        #[cfg(not(target_os = "windows"))]
+        let visible = true;
+
         Self {
             width: 400.0,
             height: 300.0,
@@ -94,8 +107,9 @@ impl WindowConfig {
             visible_on_all_workspaces: true,
             closable: false,
             minimizable: false,
-            hidden_title: true,
-            title_bar_style: "overlay".to_string(),
+            hide_title_bar: true,
+            visible,
+            transparent: true,
         }
     }
 }

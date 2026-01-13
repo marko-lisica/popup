@@ -61,8 +61,15 @@ popup custom \
   --width 800 \
   --height 600 \
   --resizable true \
-  --closable true
+  --closable true \
+  --hide_title_bar true
 ```
+
+**Available flags:**
+- `--hide_title_bar` - Hide the title bar (works on macOS, Windows, and Linux)
+- `--visible` - Start window visible immediately (default: false)
+- `--transparent` - Enable transparent window for better performance (default: true)
+- Plus all the standard window flags: `width`, `height`, `resizable`, `closable`, etc.
 
 ### 3. File Mode
 
@@ -119,8 +126,9 @@ custom:
     visible_on_all_workspaces: false
     closable: true
     minimizable: true
-    hidden_title: false
-    title_bar_style: "visible"
+    hide_title_bar: false
+    visible: false
+    transparent: true
 ```
 
 Example files are provided:

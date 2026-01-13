@@ -117,6 +117,10 @@ function NotificationContent({ content }: NotificationContentProps) {
           width: currentWidth,
           height: finalHeight,
         });
+
+        // Show window after content is ready (prevents blank screen on Windows)
+        const appWindow = getCurrentWindow();
+        await appWindow.show();
       } catch (error) {
         console.error("Failed to resize window:", error);
       }

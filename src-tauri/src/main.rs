@@ -107,13 +107,17 @@ enum Commands {
         #[arg(long)]
         minimizable: Option<bool>,
 
-        /// Hide the title bar
+        /// Hide the title bar (works cross-platform)
         #[arg(long)]
-        hidden_title: Option<bool>,
+        hide_title_bar: Option<bool>,
 
-        /// Title bar style: "overlay", "transparent", or "visible"
+        /// Start window visible (default: false)
         #[arg(long)]
-        title_bar_style: Option<String>,
+        visible: Option<bool>,
+
+        /// Enable transparent window (default: true)
+        #[arg(long)]
+        transparent: Option<bool>,
     },
 
     /// Load configuration from a YAML file
@@ -219,8 +223,9 @@ fn main() {
             visible_on_all_workspaces,
             closable,
             minimizable,
-            hidden_title,
-            title_bar_style,
+            hide_title_bar,
+            visible,
+            transparent: _,
         } => {
             // Validate URL format
             if !url.starts_with("http://")
@@ -264,12 +269,13 @@ fn main() {
             if let Some(v) = minimizable {
                 window.minimizable = v;
             }
-            if let Some(v) = hidden_title {
-                window.hidden_title = v;
+            if let Some(v) = hide_title_bar {
+                window.hide_title_bar = v;
             }
-            if let Some(v) = title_bar_style {
-                window.title_bar_style = v;
+            if let Some(v) = visible {
+                window.visible = v;
             }
+            // Note: transparent flag is kept in config for future use but not applied to window builder
 
             popup_lib::Config {
                 content: popup_lib::Content::Custom(popup_lib::CustomContent {
@@ -352,26 +358,32 @@ fn main() {
                 .focused(window_config.focus)
                 .visible_on_all_workspaces(window_config.visible_on_all_workspaces)
                 .closable(window_config.closable)
-                .minimizable(window_config.minimizable);
+                .minimizable(window_config.minimizable)
+                .visible(window_config.visible);
 
-            // Apply title bar style
-            let window_builder = if window_config.hidden_title {
-                window_builder.hidden_title(true)
+            // Apply title bar hiding (platform-specific behavior)
+            #[cfg(target_os = "macos")]
+            let window_builder = if window_config.hide_title_bar {
+                // On macOS: use hidden_title + overlay style for clean look
+                window_builder
+                    .hidden_title(true)
+                    .title_bar_style(tauri::TitleBarStyle::Overlay)
             } else {
                 window_builder
             };
 
-            let window_builder = match window_config.title_bar_style.as_str() {
-                "overlay" => window_builder.title_bar_style(tauri::TitleBarStyle::Overlay),
-                "transparent" => window_builder.title_bar_style(tauri::TitleBarStyle::Transparent),
-                "visible" => window_builder.title_bar_style(tauri::TitleBarStyle::Visible),
-                _ => {
-                    eprintln!(
-                        "Unknown title bar style: {}, using overlay",
-                        window_config.title_bar_style
-                    );
-                    window_builder.title_bar_style(tauri::TitleBarStyle::Overlay)
-                }
+            #[cfg(target_os = "windows")]
+            let window_builder = if window_config.hide_title_bar {
+                window_builder.decorations(false)
+            } else {
+                window_builder.decorations(true)
+            };
+
+            #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+            let window_builder = if window_config.hide_title_bar {
+                window_builder.decorations(false)
+            } else {
+                window_builder.decorations(true)
             };
 
             window_builder.build().map_err(|e| {
